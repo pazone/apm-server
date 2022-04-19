@@ -374,6 +374,10 @@
                 "runtime": {
                     "name": "Java",
                     "version": "10.0.2"
+                },
+                "target": {
+                    "name": "http",
+                    "type": "external"
                 }
             },
             "span": {

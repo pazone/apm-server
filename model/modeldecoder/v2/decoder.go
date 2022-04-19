@@ -968,6 +968,22 @@ func mapToSpanModel(from *span, event *model.APMEvent) {
 		mapToServiceModel(from.Context.Service, &event.Service)
 		mapToAgentModel(from.Context.Service.Agent, &event.Agent)
 	}
+	if from.Context.Service.Target.Type.IsSet() {
+		trg := make([]string, 0, 2)
+		trg = append(trg, event.Service.Target.Type)
+		if from.Context.Service.Target.Name.IsSet() {
+			trg = append(trg, event.Service.Target.Name)
+		}
+		if out.DestinationService == nil {
+			out.DestinationService = &model.DestinationService{}
+		}
+		out.DestinationService.Resource = strings.Join(trg, "/")
+	} else {
+		switch out.Type {
+		case "db", "messaging", "external":
+			inferServiceTarget(from.Context.Destination.Service.Resource, event)
+		}
+	}
 	if len(from.Context.Tags) > 0 {
 		modeldecoderutil.MergeLabels(from.Context.Tags, event)
 	}
@@ -1433,4 +1449,25 @@ func mapSpanLinks(from []spanLink, out *[]model.SpanLink) {
 			Trace: model.Trace{ID: link.TraceID.Val},
 		}
 	}
+}
+
+func inferServiceTarget(res nullable.String, event *model.APMEvent) {
+	outTarget := &model.ServiceTarget{}
+	if res.IsSet() {
+		sepIdx := strings.Index(res.Val, "/")
+		if sepIdx <= 0 {
+			outTarget.Type = res.Val
+		} else {
+			outTarget.Type = res.Val[:sepIdx]
+			outTarget.Name = res.Val[sepIdx+1:]
+		}
+	} else {
+		// Span#Type and Span#Subtype are inferred in some cases
+		if event.Span != nil {
+			outTarget.Type = event.Span.Type
+			outTarget.Name = event.Span.Subtype
+		}
+	}
+	outService := &event.Service
+	outService.Target = outTarget
 }
