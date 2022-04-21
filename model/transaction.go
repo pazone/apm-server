@@ -148,6 +148,8 @@ func (m TransactionMark) fields() common.MapStr {
 
 type DroppedSpanStats struct {
 	DestinationServiceResource string
+	ServiceTargetType          string
+	ServiceTargetName          string
 	Outcome                    string
 	Duration                   AggregatedDuration
 }
@@ -157,6 +159,8 @@ func (stat DroppedSpanStats) fields() common.MapStr {
 	out.maybeSetString("destination_service_resource",
 		stat.DestinationServiceResource,
 	)
+	out.maybeSetString("service_target_type", stat.ServiceTargetType)
+	out.maybeSetString("service_target_name", stat.ServiceTargetName)
 	out.maybeSetString("outcome", stat.Outcome)
 	out.maybeSetMapStr("duration", stat.Duration.fields())
 	return common.MapStr(out)
