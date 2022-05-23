@@ -28,21 +28,19 @@ pipeline {
       options { skipDefaultCheckout() }
       steps {        
         deleteDir()
-        gitCheckout(basedir: "${BASE_DIR}", shallow: false)
-        stash allowEmpty: true, name: 'source', useDefaultExcludes: false, excludes: '.git'        
+        gitCheckout(basedir: "${BASE_DIR}", shallow: false)        
       }
     }
 
     stage('Benchmarks') {
+      options { skipDefaultCheckout() }
       steps {
         dir("${BASE_DIR}/testing/benchmark") {
           sh(label: 'Build apmbench', script: 'apmbench')
           withTestClusterEnv {
             withECKey {
-              withGoEnv {
-                sh(label: 'Spin up benchmark environment', script: 'make init apply')
-                archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
-                sh(label: 'ls', script: 'ls -lah')
+              withGoEnv() {
+                sh(label: 'Spin up benchmark environment', script: 'make init apply')                                
                 sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
               }
             }
@@ -51,8 +49,7 @@ pipeline {
       }
       post {
         always {
-          dir("${BASE_DIR}/testing/benchmark") {      
-            archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")      
+          dir("${BASE_DIR}/testing/benchmark") {                  
             withTestClusterEnv {
               sh(label: 'Tear down benchmark environment', script: 'make destroy')
             }            
@@ -74,7 +71,16 @@ def withTestClusterEnv(Closure body) {
 }
 
 def withECKey(Closure body) {
-  def ecKey = getVaultSecret("${EC_KEY_SECRET}")?.data.apiKey
+  def vaultResponse = getVaultSecret("${EC_KEY_SECRET}")
+  if (vaultResponse.errors?) {
+    error("withECKey: Unable to get credentials from the vault: ${props.errors.toString()}")
+  }
+
+  def ecKey = vaultResponse?.data?.apiKey
+  if (!ecKey?.trim()) {
+    error("withECKey: Unable to read the apiKey field")
+  }
+
   withEnvMask(vars: [
     [var: "EC_API_KEY", password: ecKey]
   ]) {
