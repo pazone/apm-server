@@ -16,6 +16,14 @@ provider "ec" {}
 
 provider "aws" {
   region = var.worker_region
+  default_tags {
+    tags = {
+      environment  = "ci"
+      repo         = "apm-server"
+      branch       = "benchmarks_2_job"
+      build        = "1"      
+    }
+  }
 }
 
 locals {

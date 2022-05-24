@@ -2,7 +2,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent { label 'linux && immutable && obs11' }
   environment {
     REPO = 'apm-server'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -41,7 +41,7 @@ pipeline {
             withECKey {
               withGoEnv() {
                 sh(label: 'Spin up benchmark environment', script: 'make init apply')
-                archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")                           
+                archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
                 sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
               }
             }
