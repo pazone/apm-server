@@ -35,18 +35,23 @@ pipeline {
     stage('Benchmarks') {
       options { skipDefaultCheckout() }
       steps {
-        dir("${BASE_DIR}/testing/benchmark") {
-          sh(label: 'Build apmbench', script: 'apmbench')
-          withTestClusterEnv {
-            withECKey {
-              withGoEnv() {
-                sh(label: 'Spin up benchmark environment', script: 'make init apply')
-                archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
-                sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
+        dir ("${BASE_DIR}") {
+          withGoEnv() {
+            dir("testing/benchmark") {          
+              withTestClusterEnv {
+                withECKey {     
+                  withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {
+                    sh(label: 'debug', script: 'echo $TF_VAR_private_key')
+                    sh(label: 'Build apmbench', script: 'make apmbench $SSH_KEY terraform.tfvars')
+                    sh(label: 'Spin up benchmark environment', script: 'make init apply')
+                    archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
+                    sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
+                  }
+                }
               }
             }
           }
-        }        
+        }      
       }
       post {
         always {
@@ -73,7 +78,7 @@ def withTestClusterEnv(Closure body) {
 }
 
 def withECKey(Closure body) {
-  def vaultResponse = getVaultSecret("${EC_KEY_SECRET}")
+  def vaultResponse = getVaultSecret(secret: "${EC_KEY_SECRET}")
   if (vaultResponse.errors) {
     error("withECKey: Unable to get credentials from the vault: ${props.errors.toString()}")
   }
