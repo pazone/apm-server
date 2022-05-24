@@ -40,11 +40,12 @@ pipeline {
             dir("testing/benchmark") {          
               withTestClusterEnv {
                 withECKey {     
-                  withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {                    
-                    sh(label: 'Build apmbench', script: 'make apmbench $SSH_KEY terraform.tfvars')
-                    sh(label: 'Spin up benchmark environment', script: 'make init apply')
-                    archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
-                    sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
+                  withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {    
+                    sh(label: 'Tear down benchmark environment', script: 'make destroy')                
+                    // sh(label: 'Build apmbench', script: 'make apmbench $SSH_KEY terraform.tfvars')
+                    // sh(label: 'Spin up benchmark environment', script: 'make init apply')
+                    // archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
+                    // sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
                   }
                 }
               }
