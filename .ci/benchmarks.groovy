@@ -74,7 +74,7 @@ def withTestClusterEnv(Closure body) {
 
 def withECKey(Closure body) {
   def vaultResponse = getVaultSecret("${EC_KEY_SECRET}")
-  if (vaultResponse.errors?) {
+  if (vaultResponse.errors) {
     error("withECKey: Unable to get credentials from the vault: ${props.errors.toString()}")
   }
 
