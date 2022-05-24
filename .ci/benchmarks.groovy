@@ -40,7 +40,8 @@ pipeline {
           withTestClusterEnv {
             withECKey {
               withGoEnv() {
-                sh(label: 'Spin up benchmark environment', script: 'make init apply')                                
+                sh(label: 'Spin up benchmark environment', script: 'make init apply')
+                archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")                           
                 sh(label: 'Run benchmarks', script: 'make run-benchmark index-benchmark-results')
               }
             }
@@ -49,7 +50,8 @@ pipeline {
       }
       post {
         always {
-          dir("${BASE_DIR}/testing/benchmark") {                  
+          dir("${BASE_DIR}/testing/benchmark") {
+            archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")             
             withTestClusterEnv {
               sh(label: 'Tear down benchmark environment', script: 'make destroy')
             }            
