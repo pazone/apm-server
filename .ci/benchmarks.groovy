@@ -8,7 +8,7 @@ pipeline {
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
     AWS_ACCOUNT_SECRET = 'secret/observability-team/ci/elastic-observability-aws-account-auth'
     GCP_ACCOUNT_SECRET = 'secret/observability-team/ci/elastic-observability-account-auth'
-    EC_KEY_SECRET = 'secret/observability-team/ci/elastic-cloud/observability-team'
+    EC_KEY_SECRET = 'secret/observability-team/ci/elastic-cloud/observability-pro'
     TERRAFORM_VERSION = '1.1.9'
   }
 
@@ -40,8 +40,7 @@ pipeline {
             dir("testing/benchmark") {          
               withTestClusterEnv {
                 withECKey {     
-                  withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {
-                    sh(label: 'debug', script: 'echo $TF_VAR_private_key')
+                  withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {                    
                     sh(label: 'Build apmbench', script: 'make apmbench $SSH_KEY terraform.tfvars')
                     sh(label: 'Spin up benchmark environment', script: 'make init apply')
                     archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")
@@ -56,10 +55,14 @@ pipeline {
       post {
         always {
           dir("${BASE_DIR}/testing/benchmark") {
-            archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate")             
-            withTestClusterEnv {
-              sh(label: 'Tear down benchmark environment', script: 'make destroy')
-            }            
+            archiveArtifacts(allowEmptyArchive: true, artifacts: "**/*.tfstate") 
+            withECKey {  
+              withEnv(['SSH_KEY=./id_rsa_terraform', 'TF_VAR_public_key=./id_rsa_terraform.pub', 'TF_VAR_private_key=./id_rsa_terraform']) {                    
+                withTestClusterEnv {
+                  sh(label: 'Tear down benchmark environment', script: 'make destroy')
+                }     
+              }
+            }
           }
         }
       }
